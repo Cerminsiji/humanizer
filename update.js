@@ -3,25 +3,35 @@ import https from "https";
 
 const FILE = "data.json";
 
+// ===== DATASET SOURCES =====
 const SOURCES = [
-  "https://sukslan.blogspot.com/feeds/posts/default?alt=json",
-  "https://id.wikipedia.org/api/rest_v1/page/random/summary",
-  "https://raw.githubusercontent.com/irfnrdh/indosum/master/data/train.article.txt"
+
+  // 🥇 WAJIB
+  {name:"Wikipedia", url:"https://id.wikipedia.org/api/rest_v1/page/random/summary"},
+  {name:"IndoSum", url:"https://raw.githubusercontent.com/irfnrdh/indosum/master/data/train.article.txt"},
+
+  // 🥈 TAMBAHAN (mirror sample teks)
+  {name:"OpenSubtitles", url:"https://raw.githubusercontent.com/hermansyah/opensub-id-sample/main/sample.txt"},
+  {name:"OSCAR", url:"https://huggingface.co/datasets/oscar-corpus/OSCAR-2301/resolve/main/id.txt"},
+  {name:"CC-News-ID", url:"https://raw.githubusercontent.com/datasets/news-corpus-id/main/news.txt"},
+
+  // 🥉 OPSIONAL
+  {name:"Colloquial", url:"https://raw.githubusercontent.com/kmkurn/id-nlp-resource/master/colloquial-indonesian-lexicon.csv"},
+  {name:"Sentiment", url:"https://raw.githubusercontent.com/ramaprakoso/analisis-sentimen/master/dataset_tweet_sentimen_opini_film.csv"}
 ];
 
-// fetch dengan user-agent + redirect
+
+// ===== FETCH FUNCTION =====
 function fetchURL(url){
   return new Promise((resolve,reject)=>{
     const options = {
-      headers: {
-        "User-Agent": "Sukslan-Humanizer-Bot/1.0"
-      }
+      headers: {"User-Agent":"Sukslan-Humanizer-Bot"}
     };
 
-    https.get(url, options, res => {
+    https.get(url, options, res=>{
 
-      // redirect handler
-      if(res.statusCode >= 300 && res.statusCode < 400 && res.headers.location){
+      // redirect
+      if(res.statusCode>=300 && res.statusCode<400 && res.headers.location){
         return resolve(fetchURL(res.headers.location));
       }
 
@@ -33,58 +43,46 @@ function fetchURL(url){
   });
 }
 
-// ekstrak kalimat natural
+
+// ===== EXTRACT SENTENCES =====
 function extract(text){
   return text
     .replace(/<[^>]+>/g," ")
     .replace(/\n/g," ")
     .split(/[.!?]/)
     .map(s=>s.trim())
-    .filter(s=>s.length>50 && s.length<160);
+    .filter(s=>s.length>40 && s.length<160);
 }
 
+
+// ===== MAIN =====
 async function main(){
 
   let dataset = JSON.parse(fs.readFileSync(FILE));
   let collected = [];
 
-  for(const url of SOURCES){
+  for(const src of SOURCES){
     try{
-      const txt = await fetchURL(url);
 
-      // RSS Sukslan
-      if(url.includes("blogspot")){
-        const json = JSON.parse(txt);
-        const posts = json.feed.entry || [];
+      const txt = await fetchURL(src.url);
 
-        posts.forEach(p=>{
-          collected.push(...extract(p.summary?.$t || ""));
-          collected.push(...extract(p.title?.$t || ""));
-        });
-
-        console.log("Loaded RSS Sukslan");
-      }
-
-      // Wikipedia
-      else if(url.includes("wikipedia")){
+      if(src.name==="Wikipedia"){
         const json = JSON.parse(txt);
         collected.push(...extract(json.extract || ""));
-        console.log("Loaded Wikipedia");
       }
-
-      // IndoSum
       else{
         collected.push(...extract(txt));
-        console.log("Loaded IndoSum");
       }
 
+      console.log("Loaded:", src.name);
+
     }catch(e){
-      console.log("Failed:", url, e.message);
+      console.log("Failed:", src.name);
     }
   }
 
-  // fallback kalau kosong
-  if(collected.length === 0){
+  // fallback
+  if(collected.length===0){
     collected.push("Di rumah sederhana, kebiasaan kecil sering membawa perubahan besar.");
   }
 
