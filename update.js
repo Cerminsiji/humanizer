@@ -3,25 +3,12 @@ import https from "https";
 
 const FILE = "data.json";
 
+// sumber pasti bisa diakses
 const SOURCES = [
-
-  // IndoSum sample
-  "https://raw.githubusercontent.com/irfnrdh/indosum/master/data/train.article.txt",
-
-  // Colloquial Indonesian
-  "https://raw.githubusercontent.com/kmkurn/id-nlp-resource/master/colloquial-indonesian-lexicon.csv",
-
-  // OSCAR Indonesian sample
-  "https://huggingface.co/datasets/oscar-corpus/OSCAR-2301/resolve/main/id.txt",
-
-  // OpenSubtitles Indonesian sample
-  "https://raw.githubusercontent.com/opensubtitles/opensubtitles-scraper/master/subtitles/sample-id.txt",
-
-  // Wikipedia random
-  "https://id.wikipedia.org/api/rest_v1/page/random/summary"
+  "https://id.wikipedia.org/api/rest_v1/page/random/summary",
+  "https://sukslan.blogspot.com/feeds/posts/default?alt=json"
 ];
 
-// fetch url
 function fetchURL(url){
   return new Promise((resolve,reject)=>{
     https.get(url,res=>{
@@ -32,13 +19,12 @@ function fetchURL(url){
   });
 }
 
-// ekstrak kalimat natural
 function extract(text){
   return text
-    .replace(/[\n\r]/g," ")
+    .replace(/<[^>]+>/g," ")
     .split(/[.!?]/)
     .map(s=>s.trim())
-    .filter(s=>s.length>40 && s.length<140);
+    .filter(s=>s.length>40 && s.length<160);
 }
 
 async function main(){
@@ -53,25 +39,31 @@ async function main(){
       if(url.includes("wikipedia")){
         const json = JSON.parse(txt);
         collected.push(...extract(json.extract || ""));
-      }else{
-        collected.push(...extract(txt));
+      }
+
+      if(url.includes("blogspot")){
+        const json = JSON.parse(txt);
+        const posts = json.feed.entry || [];
+        posts.forEach(p=>{
+          collected.push(...extract(p.summary?.$t || ""));
+        });
       }
 
       console.log("Loaded:", url);
+
     }catch(e){
-      console.log("Failed:", url);
+      console.log("Failed:", url, e.message);
     }
   }
 
+  // jika tidak ada data, paksa test
   if(collected.length === 0){
-    console.log("Tidak ada kalimat baru");
-    return;
+    collected.push("Di rumah sederhana, kebiasaan kecil sering membawa perubahan besar.");
   }
 
-  // random 30 kalimat
   const random = collected
     .sort(()=>0.5-Math.random())
-    .slice(0,30);
+    .slice(0,20);
 
   let added = 0;
 
@@ -84,7 +76,7 @@ async function main(){
 
   fs.writeFileSync(FILE, JSON.stringify(dataset,null,2));
 
-  console.log(`Dataset updated ✔ Added ${added}`);
+  console.log("Added:", added);
 }
 
 main();
