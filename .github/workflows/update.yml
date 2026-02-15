@@ -9,31 +9,41 @@ concurrency:
 
 on:
   schedule:
-    - cron: "0 2 * * *"   # 09.00 WIB tiap hari
+    - cron: "0 2 * * *"
   workflow_dispatch:
 
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
-
-      # 1️⃣ Checkout repo
-      - name: Checkout Repository
+      - name: Checkout
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      # 2️⃣ Detect branch otomatis
       - name: Detect Branch
         run: echo "BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
 
-      # 3️⃣ Setup Node
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
           node-version: 18
+
+      - name: Run update.js
+        run: node update.js
+
+      - name: Commit & Push
+        run: |
+          git config user.name "Sukslan Bot"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+
+          git add .
+          git commit -m "auto update humanizer dataset csv" || echo "no changes"
+
+          git pull --rebase origin $BRANCH || true
+          git push origin $BRANCH --force-with-lease
 
       # 4️⃣ Jalankan update.js
       - name: Run Update Script
