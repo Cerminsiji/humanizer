@@ -1,0 +1,28 @@
+name: Update Humanizer Dataset
+
+on:
+  schedule:
+    - cron: "0 2 * * *"   # tiap hari jam 09 WIB
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Update dataset
+        run: node update.js
+
+      - name: Commit changes
+        run: |
+          git config user.name "sukslan-bot"
+          git config user.email "bot@sukslan.com"
+          git add .
+          git commit -m "auto update dataset" || echo "no change"
+          git push
