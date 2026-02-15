@@ -50,10 +50,8 @@ jobs:
           # commit jika ada perubahan
           git commit -m "auto update humanizer dataset csv" || echo "no changes"
 
-          # sync dengan remote biar tidak konflik
-          git fetch origin $BRANCH
-          git reset --soft origin/$BRANCH || true
+          # ambil update terbaru TANPA hapus file lokal
+          git pull --rebase origin $BRANCH || true
 
           # push aman
           git push origin $BRANCH --force-with-lease
-          
