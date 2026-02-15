@@ -9,32 +9,37 @@ concurrency:
 
 on:
   schedule:
-    # Jam 09.00 WIB tiap hari
-    - cron: "0 2 * * *"
+    - cron: "0 2 * * *"   # 09.00 WIB tiap hari
   workflow_dispatch:
 
 jobs:
   update:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
+
       # 1️⃣ Checkout repo
       - name: Checkout Repository
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      # 2️⃣ Setup Node
+      # 2️⃣ Detect branch otomatis
+      - name: Detect Branch
+        run: echo "BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
+
+      # 3️⃣ Setup Node
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
           node-version: 18
 
-      # 3️⃣ Jalankan update.js
+      # 4️⃣ Jalankan update.js
       - name: Run Update Script
         run: node update.js
 
-      # 4️⃣ Commit & Push Aman
+      # 5️⃣ Commit & Push Aman
       - name: Commit and Push Changes
         run: |
           git config user.name "Sukslan Bot"
@@ -42,12 +47,13 @@ jobs:
 
           git add .
 
-          # commit dulu kalau ada perubahan
-          git commit -m "auto update humanizer dataset" || echo "no changes"
+          # commit jika ada perubahan
+          git commit -m "auto update humanizer dataset csv" || echo "no changes"
 
-          # pull terbaru biar tidak konflik
-          git pull --rebase origin master || true
+          # sync dengan remote biar tidak konflik
+          git fetch origin $BRANCH
+          git reset --soft origin/$BRANCH || true
 
           # push aman
-          git push origin master --force-with-lease
+          git push origin $BRANCH --force-with-lease
           
