@@ -1,5 +1,9 @@
 name: Update Humanizer Dataset
 
+permissions:
+  contents: write
+  
+
 on:
   schedule:
     - cron: "0 2 * * *"   # tiap hari jam 09 WIB
