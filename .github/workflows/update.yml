@@ -1,32 +1,52 @@
 name: Update Humanizer Dataset
 
+# IZIN UNTUK PUSH KE REPO
 permissions:
   contents: write
-  
+
+# CEGAH WORKFLOW JALAN BERSAMAAN
+concurrency:
+  group: sukslan-humanizer
+  cancel-in-progress: true
 
 on:
   schedule:
-    - cron: "0 2 * * *"   # tiap hari jam 09 WIB
+    # Jam 09.00 WIB setiap hari
+    - cron: "0 2 * * *"
   workflow_dispatch:
 
 jobs:
   update:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
 
-      - name: Install Node
+    steps:
+      # 1️⃣ Checkout Repo
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0   # penting untuk rebase
+
+      # 2️⃣ Setup Node
+      - name: Setup Node
         uses: actions/setup-node@v3
         with:
           node-version: 18
 
-      - name: Update dataset
+      # 3️⃣ Jalankan Script Update Dataset
+      - name: Run Update Script
         run: node update.js
 
-      - name: Commit changes
+      # 4️⃣ Commit & Push Aman
+      - name: Commit and Push Changes
         run: |
-          git config user.name "sukslan-bot"
-          git config user.email "Cerminsiji@users.noreply.github.com"
+          git config user.name "Sukslan Bot"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+
+          # ambil perubahan terbaru dulu
+          git pull --rebase origin main || true
+
           git add .
-          git commit -m "auto update dataset" || echo "no change"
-          git push
+          git commit -m "auto update humanizer dataset" || echo "no changes"
+
+          # push aman tanpa overwrite sembarangan
+          git push --force-with-lease
