@@ -43,7 +43,7 @@ jobs:
           git config user.email "${{ github.actor }}@users.noreply.github.com"
 
           # ambil perubahan terbaru dulu
-          git pull --rebase origin main || true
+          git pull --rebase origin master || true
 
           git add .
           git commit -m "auto update humanizer dataset" || echo "no changes"
